@@ -60,7 +60,9 @@ Times are `float` Unix seconds, as Frigate keeps them:
 `convert.toFloat(time.unix(time.now()))` is now. Every request has a
 deadline (30 s), JSON responses a cap (16 MiB) and images and video another
 (256 MiB). Camera names, labels, ids and query parameter names are checked
-before they go into a URL.
+before they go into a URL. Every GET carries `X-Cache-Bypass: 1`: nginx in
+front of port 8971 otherwise answers a read repeated within 5 seconds from
+its cache, so a read right after a change would show the old state.
 
 The deck follows Frigate 0.18 (checked against 0.18.2 and its OpenAPI
 description). Calls marked admin in the [cheatsheet](cheatsheet.md) need a

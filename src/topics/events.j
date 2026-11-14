@@ -243,12 +243,12 @@ export func setSubLabel(c as Client, id as string, subLabel as string, score as 
  *
  * @param c {Client} the client
  * @param camera {string} the camera
- * @param label {string} its label, such as `doorbell`
+ * @param label {string} its label, such as `doorbell` or `traffic light`: 1 to 64 letters, digits, `_` and `-`, words split by single spaces (sent percent-encoded)
  * @param subLabel {string} a sub label, `""` for none
  * @param seconds {int} how long it lasts, 1 to 86400; 0 to keep it open until `endEvent`
  * @return {string} the new event's id
  * @throws {HttpError} kind "frigate.http" when there is no such camera (404), the user is no admin (403), or the status is not 2xx
- * @throws {Error} kind "frigate" when a name or the duration is malformed, or the request fails
+ * @throws {Error} kind "frigate" when the camera, label or duration is malformed, or the request fails
  * @example
  *   def id as string init frigate.createEvent($c, "front", "doorbell", "", 30);
  */
@@ -259,7 +259,7 @@ export func createEvent(
     subLabel as string,
     seconds as int) {
     checkName($camera, "a camera");
-    checkName($label, "a label");
+    checkLabel($label);
     checkRange($seconds, 0, 86400, "the duration in seconds");
     if (len($subLabel) > MAX_SUB_LABEL) {
         fail(io.sprintf(
@@ -278,7 +278,7 @@ export func createEvent(
     def v as json.Value init command(
         $c,
         "POST",
-        "/events/" + $camera + "/" + $label + "/create",
+        eventPath($camera, $label),
         json.encode($body),
         $what);
     def id as string init textAt($v, "/event_id");
@@ -286,6 +286,18 @@ export func createEvent(
         fail($what + ": the server returned no event id");
     }
     return $id;
+}
+
+/**
+ * The API path that creates an event, the label percent-encoded (a space
+ * as `%20`).
+ *
+ * @param camera {string} the camera, checked
+ * @param label {string} the label, checked
+ * @return {string} such as `/events/front/traffic%20light/create`
+ */
+func eventPath(camera as string, label as string) {
+    return "/events/" + $camera + "/" + uri.encode($label) + "/create";
 }
 
 /**

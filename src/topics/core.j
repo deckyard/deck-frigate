@@ -22,8 +22,12 @@ def const UNSHOWN as string init '[\x00-\x1f\x7f-\x9f\x{061c}\x{200b}-\x{200f}\x
 # a query parameter name: Frigate's are snake_case
 def const PARAM as string init '^[a-z][a-z0-9_]*$';
 
-# a camera, zone or mask name, or a label: what Frigate allows in its config
+# a camera, zone or mask name: what Frigate allows in its config
 def const NAME as string init '^[A-Za-z0-9_-]{1,64}$';
+
+# a label: words of the name characters split by single spaces, so that
+# COCO's "traffic light" and "fire hydrant" pass (at most 64 characters)
+def const LABEL as string init '^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$';
 
 # an event or review item id: `<unix time>-<random suffix>`
 def const ITEM_ID as string init '^[0-9]{1,12}(\.[0-9]{1,9})?-[a-z0-9]{1,16}$';
@@ -178,8 +182,7 @@ func checkRange(value as int, low as int, high as int, what as string) {
 }
 
 /**
- * Refuse a camera, zone or mask name, or a label, that Frigate would not
- * accept.
+ * Refuse a camera, zone or mask name that Frigate would not accept.
  *
  * @param name {string} the name
  * @param what {string} what it is
@@ -187,6 +190,19 @@ func checkRange(value as int, low as int, high as int, what as string) {
 func checkName(name as string, what as string) {
     if (not regex.matches(NAME, $name)) {
         fail($what + " is 1 to 64 letters, digits, _ and -, got " + shown($name));
+    }
+}
+
+/**
+ * Refuse a label that is not words of letters, digits, `_` and `-` split
+ * by single spaces, 1 to 64 characters.
+ *
+ * @param label {string} the label
+ */
+func checkLabel(label as string) {
+    if (len($label) > 64 or not regex.matches(LABEL, $label)) {
+        fail("a label is 1 to 64 letters, digits, _ and -, words split by single spaces, got " +
+            shown($label));
     }
 }
 
@@ -431,7 +447,9 @@ func hasParam(query as list of string, name as string) {
 }
 
 /**
- * Send one request within the deadline.
+ * Send one request within the deadline. A GET carries `X-Cache-Bypass: 1`:
+ * nginx in front of port 8971 otherwise answers a repeated read from its
+ * 5-second cache.
  *
  * @param c {Client} the client
  * @param method {string} the HTTP method
@@ -458,6 +476,9 @@ func exchange(
     }
     if ($body != "") {
         $headers["Content-Type"] = "application/json";
+    }
+    if ($method == "GET") {
+        $headers["X-Cache-Bypass"] = "1";
     }
     def url as string init $c.baseUrl + $path;
     def timeoutMs as int init $c.timeoutMs;

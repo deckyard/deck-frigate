@@ -53,6 +53,10 @@ keeps the recording around it:
 def id as string init frigate.createEvent($c, "front", "doorbell", "", 30);
 ```
 
+A label is letters, digits, `_` and `-`, in words split by single spaces,
+so every COCO label works (`"traffic light"`, `"fire hydrant"`); the deck
+percent-encodes it in the URL and refuses anything else.
+
 With 0 seconds the event stays open until `endEvent`. `setSubLabel` names
 an event's object (`""` clears it), `retainEvent` keeps an event regardless
 of the retention settings, `deleteEvent` removes it with its media. All of
@@ -60,10 +64,9 @@ these need the admin role.
 
 Frigate applies every change to an event through its event queue, after it
 has answered: a new event is not found (404) for a moment, and an `event`
-read right after a change may still show the old state. On port 8971 the
-proxy in front of the API also keeps every JSON answer for 5 seconds (per
-URL and user), so any read, `reviews` after `markReviewed` or `cameraStats`
-after `switchCamera` too, can lag a change by that much.
+read right after a change may still show the old state. That lag is the
+server's; other reads see a change at once (every read skips the proxy's
+cache, see [the overview](index.md)).
 
 ## Review items
 

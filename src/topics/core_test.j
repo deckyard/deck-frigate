@@ -59,7 +59,7 @@ func startFake(answers as map of string to string) {
  *
  * @param srv {httpd.Server} the server
  * @param answers {map of string to string} the answers
- * @return {list of string} each request as `METHOD path?query|header=value|...|body`
+ * @return {list of string} each request as `METHOD path?query|header=value|...|body`, with the headers Content-Type, Authorization and X-Cache-Bypass when sent
  */
 func serveFake(srv as httpd.Server, answers as map of string to string) {
     def seen as list of string init [];
@@ -76,7 +76,7 @@ func serveFake(srv as httpd.Server, answers as map of string to string) {
         }
         def key as string init httpd.method($req) + " " + $target;
         def line as list of string init [$key];
-        for (def h in ["Content-Type", "Authorization"]) {
+        for (def h in ["Content-Type", "Authorization", "X-Cache-Bypass"]) {
             if (httpd.header($req, $h) != "") {
                 $line[] = $h + "=" + httpd.header($req, $h);
             }
@@ -284,7 +284,36 @@ func testLoginTakesTheCookie() {
     testing.assertEqual(
         $seen[0],
         'POST /api/login|Content-Type=application/json|{"user":"admin","password":"s3cret"}');
-    testing.assertEqual($seen[1], "GET /api/profile|Authorization=Bearer " + TOKEN + "|");
+    testing.assertEqual(
+        $seen[1],
+        "GET /api/profile|Authorization=Bearer " + TOKEN + "|X-Cache-Bypass=1|");
+}
+
+# Port 8971's nginx keeps every 200 JSON answer for 5 s unless a request
+# carries X-Cache-Bypass: every GET does (reads, media, waitExport's polls),
+# nothing else needs it.
+func testReadsBypassTheCache() {
+    def f as Fake init startFake({
+        "GET /api/profile": answer(200, '{"username":"admin","role":"admin","allowed_cameras":[]}'),
+        "GET /api/front/grid.jpg": "200\nContent-Type: image/jpeg\n\nJPEGDATA",
+        "GET /api/exports/front_f9pg1a": answer(
+            200,
+            '{"id":"front_f9pg1a","camera":"front","name":"x","date":1,"video_path":"","in_progress":false}'),
+        "POST /api/events/" + EVENT + "/retain": answer(200, '{"success":true,"message":"ok"}')
+    });
+    def c as Client init fakeClient($f);
+    profile($c);
+    fetch($c, "/front/grid.jpg", []);
+    waitExport($c, "front_f9pg1a", 1000);
+    retainEvent($c, EVENT, true);
+    def seen as list of string init stopFake($f);
+    testing.assertEqual(len($seen), 4);
+    for (def i in 0..3) {
+        testing.assertTrue(strings.startsWith($seen[$i], "GET "));
+        testing.assertContains($seen[$i], "|X-Cache-Bypass=1|");
+    }
+    testing.assertTrue(strings.startsWith($seen[3], "POST "));
+    testing.assertFalse(strings.contains($seen[3], "X-Cache-Bypass"));
 }
 
 func testLoginTakesARenamedCookie() {
@@ -491,7 +520,8 @@ func testCallFetchAndCaps() {
     def seen as list of string init stopFake($f);
     testing.assertEqual(
         $seen[0],
-        "GET /api/timeline?camera=front&limit=2|Authorization=Bearer " + TOKEN + "|");
+        "GET /api/timeline?camera=front&limit=2|Authorization=Bearer " + TOKEN +
+            "|X-Cache-Bypass=1|");
     try {
         version(client("http://127.0.0.1:1"));
         missed("nothing listening");

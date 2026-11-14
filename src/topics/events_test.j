@@ -96,7 +96,10 @@ func testEventChanges() {
         "POST /api/events/front/doorbell/create": answer(
             200,
             '{"success":true,"message":"Successfully created event.","event_id":"1794647391.273952-cf67kg"}'),
-        "POST /api/events/back/doorbell/create": answer(200, '{"success":true,"message":"x"}')
+        "POST /api/events/back/doorbell/create": answer(200, '{"success":true,"message":"x"}'),
+        "POST /api/events/front/traffic light/create": answer(
+            200,
+            '{"success":true,"message":"Successfully created event.","event_id":"1794647391.273952-tl0001"}')
     });
     def c as Client init fakeClient($f);
     deleteEvent($c, EVENT);
@@ -113,12 +116,43 @@ func testEventChanges() {
     } catch (e) {
         testing.assertContains($e.message, "the server returned no event id");
     }
-    for (def bad in [["front door", "x"], ["front", "a/b"]]) {
+    # a COCO label such as "traffic light" has a space; the httpd fake sees
+    # the path decoded, eventPath shows it is sent encoded
+    testing.assertEqual(
+        createEvent($c, "front", "traffic light", "", 5),
+        "1794647391.273952-tl0001");
+    testing.assertEqual(
+        eventPath("front", "traffic light"),
+        "/events/front/traffic%20light/create");
+    testing.assertEqual(eventPath("front", "fire hydrant"), "/events/front/fire%20hydrant/create");
+    testing.assertEqual(eventPath("front", "door_bell-2"), "/events/front/door_bell-2/create");
+    testing.assertEqual(eventPath("front", "a b c"), "/events/front/a%20b%20c/create");
+    try {
+        createEvent($c, "front door", "x", "", 1);
+        missed("a camera with a space");
+    } catch (e) {
+        testing.assertContains($e.message, "a camera is 1 to 64 letters");
+    }
+    for (def bad in [
+        "a/b",
+        "",
+        " person",
+        "person ",
+        "traffic  light",
+        "a\tb",
+        "caf\u00e9",
+        "a%20b",
+        "a+b",
+        strings.repeat("x", 65)
+    ]) {
         try {
-            createEvent($c, $bad[0], $bad[1], "", 1);
-            missed($bad[0] + " " + $bad[1]);
+            createEvent($c, "front", $bad, "", 1);
+            missed($bad);
         } catch (e) {
-            testing.assertContains($e.message, " is 1 to 64 letters");
+            testing.assertEqual($e.kind, "frigate");
+            testing.assertContains(
+                $e.message,
+                "a label is 1 to 64 letters, digits, _ and -, words split by single spaces");
         }
     }
     for (def bad in [-1, 86401]) {
@@ -162,6 +196,9 @@ func testEventChanges() {
         $seen[7],
         "POST /api/events/front/doorbell/create" + $j + $auth +
             '|{"duration":null,"sub_label":"ring \"1\""}');
+    testing.assertEqual(
+        $seen[9],
+        "POST /api/events/front/traffic light/create" + $j + $auth + '|{"duration":5}');
 }
 
 func testEventMedia() {
