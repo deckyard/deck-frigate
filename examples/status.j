@@ -10,6 +10,10 @@
  * published it.
  *
  *   jennifer run examples/status.j http://localhost:5000
+ *   FRIGATE_PLAIN=1 jennifer run examples/status.j http://nvr.lan:5000
+ *
+ * Port 5000 is plain http, which the deck refuses except to this machine:
+ * FRIGATE_PLAIN=1 allows it for a server on the LAN (`withPlainHttp`).
  *
  * Without arguments it prints this usage, so CI runs it without a server.
  */
@@ -22,12 +26,15 @@ import "../src/frigate.j" as frigate;
 
 def args as list of string init os.ARGS;
 if (len($args) != 2) {
-    io.printf("usage: jennifer run examples/status.j <url>, such as http://localhost:5000\n");
+    io.printf("usage: [FRIGATE_PLAIN=1] jennifer run examples/status.j <url>, such as http://localhost:5000\n");
     exit 0;
 }
 
 try {
     def c as frigate.Client init frigate.client($args[1]);
+    if (os.getEnv("FRIGATE_PLAIN") == "1") {
+        $c = frigate.withPlainHttp($c);
+    }
     def used as map of string to float init {};
     for (def s in frigate.storage($c)) {
         $used[$s.camera] = $s.usageMb;

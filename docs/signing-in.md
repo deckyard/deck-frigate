@@ -49,11 +49,14 @@ add `withPlainHttp`:
 def c as frigate.Client init frigate.withPlainHttp(frigate.client("http://nvr.lan:5000"));
 ```
 
+`examples/status.j` does that with `FRIGATE_PLAIN=1`.
+
 ## Certificates
 
 Until the operator installs a certificate, port 8971 serves Frigate's own,
 which names no host (`CN=*`, no subject alternative names). No TLS client
-can verify it, so reaching it takes `skipVerify`:
+can verify it, not even with the certificate itself as `caCert`, so
+reaching it takes `skipVerify`:
 
 ```jennifer
 $c = frigate.withTls($c, http.TlsOptions{skipVerify: true});

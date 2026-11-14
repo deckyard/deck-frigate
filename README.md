@@ -27,19 +27,27 @@ This vendors the deck to `vendor/<scope>/frigate/`. Without `jvc`, unpack the
 
 ```jennifer
 import "@deckyard/frigate/" as frigate;
+import "http.j" as http;
 
-def c as frigate.Client init frigate.login(
+def c as frigate.Client init frigate.withTls(
     frigate.client("https://nvr.example.org:8971"),
-    "admin",
-    os.getEnv("FRIGATE_PASSWORD"));
+    http.TlsOptions{caCert: fs.readBytes("ca.pem")});
+$c = frigate.login($c, "admin", os.getEnv("FRIGATE_PASSWORD"));
 for (def e in frigate.events($c, ["labels=person", "has_snapshot=1", "limit=5"])) {
     fs.writeBytes($e.id + ".jpg", frigate.eventSnapshot($c, $e.id));
 }
 ```
 
+`ca.pem` is the CA that signed the certificate installed on port 8971.
+Frigate's own default certificate there (`CN=*`, no subject alternative
+names) names no host, so no CA verifies it: it only works with
+`http.TlsOptions{skipVerify: true}`, which turns the check off.
+
 `examples/` has three programs: `events.j` (open alerts and the last
 events), `export.j` (export and download the last minutes of a camera) and
-`status.j` (frame rates and disk use per camera).
+`status.j` (frame rates and disk use per camera, over the unauthenticated
+port 5000; `FRIGATE_PLAIN=1` allows plain http to a LAN host). `events.j`
+and `export.j` take `FRIGATE_CA=ca.pem` or `FRIGATE_INSECURE=1`.
 
 ## Requirements
 

@@ -28,10 +28,18 @@
  * | `recordings` | recordings, clips and frames, storage, exports |
  * | `cameras` | config, cameras, stats, latest frame, labels, switches, restart |
  *
+ * Port 8971 serves https. Trust the CA of an installed certificate with
+ * `withTls` and `caCert`; Frigate's own default certificate (`CN=*`, no
+ * subject alternative names) names no host, so no CA verifies it and it
+ * only works with `skipVerify`.
+ *
  * @module frigate
  * @see https://docs.frigate.video/integrations/api/frigate-http-api
  * @example
- *   def c as frigate.Client init frigate.login(frigate.client("https://nvr.example.org:8971"), "admin", $password);
+ *   def c as frigate.Client init frigate.withTls(
+ *       frigate.client("https://nvr.example.org:8971"),
+ *       http.TlsOptions{caCert: fs.readBytes("ca.pem")});
+ *   $c = frigate.login($c, "admin", $password);
  *   for (def e in frigate.events($c, ["labels=person", "limit=10"])) {
  *       io.printf("%s %s %s\n", $e.camera, $e.label, $e.id);
  *   }
