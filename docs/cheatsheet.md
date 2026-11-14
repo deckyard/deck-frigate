@@ -29,7 +29,8 @@ parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 | `DEFAULT_MAX_BYTES` | `16777216` | the largest JSON response read |
 | `DEFAULT_MAX_MEDIA_BYTES` | `268435456` | the largest image or video read |
 | `MAX_SUB_LABEL` | `100` | the longest sub label |
-| `MAX_SPAN_SECONDS` | `86400` | the longest range of recordings, clips and exports |
+| `MAX_SPAN_SECONDS` | `86400` | the longest range of a clip or an export |
+| `MAX_RECORDINGS_SPAN_SECONDS` | `21600` | the longest range of one `recordings` call (a day is four) |
 
 ## The client
 
@@ -57,7 +58,7 @@ parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 | `deleteEvent(c, id)` | `null` | admin; delete an event with its media |
 | `retainEvent(c, id, keep)` | `null` | admin; keep an event regardless of retention, or stop keeping it |
 | `setSubLabel(c, id, subLabel, score)` | `null` | admin; set or clear (`""`) the sub label; score 0 for none |
-| `createEvent(c, camera, label, subLabel, seconds)` | `string` | admin; a manual event, the new id; 0 seconds keeps it open |
+| `createEvent(c, camera, label, subLabel, seconds)` | `string` | admin; a manual event, the new id; 0 seconds keeps it open; a label may have single inner spaces (`traffic light`) |
 | `endEvent(c, id)` | `null` | admin; end a manual event left open |
 | `eventSnapshot(c, id)` | `bytes` | the event's snapshot, a JPEG |
 | `eventThumbnail(c, id, format)` | `bytes` | its thumbnail, `jpg`, `png` or `webp` |
@@ -67,19 +68,20 @@ parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 | `markReviewed(c, ids, reviewed)` | `null` | mark items reviewed or not, for the signed-in user |
 
 Changes to events go through the server's event queue: `event` shows them
-after a moment.
+after a moment. Every other read sees a change at once: each GET carries
+`X-Cache-Bypass: 1`, past the 5-second cache in front of port 8971.
 
 ## Recordings and exports
 
 | Function | Returns | Does |
 |---|---|---|
-| `recordings(c, camera, after, before)` | `list of Recording` | the recorded segments in a range |
+| `recordings(c, camera, after, before)` | `list of Recording` | the recorded segments in a range of at most 6 hours |
 | `recordingHours(c, camera)` | `list of RecordingHour` | the hours recorded, in UTC, newest day first |
 | `storage(c)` | `list of Storage` | admin; the disk space each camera's recordings take |
 | `recordingClip(c, camera, start, end)` | `bytes` | an MP4 cut from the recordings |
 | `recordingFrame(c, camera, at, format, height)` | `bytes` | one recorded frame, `jpg` or `png`; height 0 for the recorded size |
 | `startExport(c, camera, start, end, name)` | `string` | queue an export; its id |
-| `exports(c)` | `list of Export` | every export, newest first |
+| `exports(c, query)` | `list of Export` | exports, newest first, filtered by the server (`cameras`, `start_date`, `end_date`, `export_case_id`; `[]` for all) |
 | `exportInfo(c, id)` | `Export` | one export |
 | `waitExport(c, id, ms)` | `Export` | wait until it is written; kind `"timeout"` after `ms` |
 | `exportFile(c, e)` | `bytes` | a finished export's MP4 |

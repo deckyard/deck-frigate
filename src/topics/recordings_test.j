@@ -48,7 +48,7 @@ func testRecordingsAndHours() {
     } catch (e) {
         testing.assertContains($e.message, "an hour is not 00 to 23");
     }
-    for (def bad in [[100.0, 100.0], [200.0, 100.0], [0.0, 86401.0], [-5.0, 10.0]]) {
+    for (def bad in [[100.0, 100.0], [200.0, 100.0], [0.0, 21601.0], [-5.0, 10.0]]) {
         try {
             recordings($c, "front", $bad[0], $bad[1]);
             missed(stamp($bad[0]));
@@ -57,6 +57,38 @@ func testRecordingsAndHours() {
         }
     }
     stopFake($f);
+}
+
+# recordings answers a motion heatmap per segment, so a call covers at most
+# six hours: a day is four calls; clips and exports still take a day
+func testRecordingsSpanIsSixHours() {
+    def f as Fake init startFake({
+        "GET /api/front/recordings?after=1794600000&before=1794621600": answer(200, "[]"),
+        "GET /api/front/start/1794600000/end/1794686400/clip.mp4": "200\nContent-Type: video/mp4\n\nMP4"
+    });
+    def c as Client init fakeClient($f);
+    testing.assertEqual(MAX_RECORDINGS_SPAN_SECONDS, 21600);
+    testing.assertEqual(len(recordings($c, "front", 1794600000.0, 1794621600.0)), 0);
+    try {
+        recordings($c, "front", 1794600000.0, 1794621600.5);
+        missed("seven hours of recordings");
+    } catch (e) {
+        testing.assertEqual($e.kind, "frigate");
+        testing.assertEqual(
+            $e.message,
+            "frigate: recordings cover at most 21600 seconds per call, got 21600.5: ask in parts");
+    }
+    try {
+        recordings($c, "front", 1794600000.0, 1794686400.0);
+        missed("a day of recordings");
+    } catch (e) {
+        testing.assertContains($e.message, "recordings cover at most 21600 seconds per call");
+    }
+    testing.assertEqual(
+        convert.stringFromBytes("utf-8", recordingClip($c, "front", 1794600000.0, 1794686400.0)),
+        "MP4");
+    def seen as list of string init stopFake($f);
+    testing.assertEqual(len($seen), 2);
 }
 
 func testStorage() {
@@ -135,6 +167,9 @@ func testExports() {
             400,
             '{"success":false,"message":"No recordings found for time range"}'),
         "GET /api/exports": answer(200, "[" + EXPORT_DONE + "]"),
+        "GET /api/exports?cameras=front%2Cback&start_date=1794646900&end_date=1794647000.5&export_case_id=case_1": answer(
+            200,
+            "[]"),
         "GET /api/exports/front_f9pg1a": answer(200, EXPORT_DONE),
         "GET /api/exports/busy": answer(200, EXPORT_BUSY),
         "GET /exports/front_20261114_090219-20261114_090249_f9pg1a.mp4": "200\nContent-Type: video/mp4\n\nEXPORTED",
@@ -159,8 +194,27 @@ func testExports() {
     } catch (e) {
         testing.assertContains($e.message, "an export name is at most 256 characters");
     }
-    def all as list of Export init exports($c);
+    def all as list of Export init exports($c, []);
     testing.assertEqual(len($all), 1);
+    testing.assertEqual(
+        len(exports(
+            $c,
+            [
+                "cameras=front,back",
+                "start_date=1794646900",
+                "end_date=1794647000.5",
+                "export_case_id=case_1"
+            ])),
+        0);
+    for (def bad in [["cameras"], ["Cameras=front"], ["=front"], ["start-date=1"]]) {
+        try {
+            exports($c, $bad);
+            missed($bad[0]);
+        } catch (err) {
+            testing.assertEqual($err.kind, "frigate");
+            testing.assertContains($err.message, "a query parameter is name=value");
+        }
+    }
     def e as Export init waitExport($c, "front_f9pg1a", 5000);
     testing.assertEqual($e.id, "front_f9pg1a");
     testing.assertEqual($e.camera, "front");

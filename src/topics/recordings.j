@@ -9,6 +9,13 @@
 /** The longest stretch a recording clip or an export may cover: 24 hours. */
 export def const MAX_SPAN_SECONDS as int init 86400;
 
+/**
+ * The longest stretch one `recordings` call may cover: 6 hours. Each
+ * segment carries a motion heatmap, so a day of steady motion is some 24 MB
+ * of JSON; a day takes four calls.
+ */
+export def const MAX_RECORDINGS_SPAN_SECONDS as int init 21600;
+
 # an export id: `<camera>_<suffix>`
 def const EXPORT_ID as string init '^[A-Za-z0-9_-]{1,128}$';
 
@@ -117,10 +124,10 @@ func checkSpan(start as float, end as float) {
  * @param c {Client} the client
  * @param camera {string} the camera
  * @param after {float} the start, Unix seconds
- * @param before {float} the end, Unix seconds; at most `MAX_SPAN_SECONDS` after the start
+ * @param before {float} the end, Unix seconds; at most `MAX_RECORDINGS_SPAN_SECONDS` (6 hours) after the start, so a day takes four calls
  * @return {list of Recording} the segments
  * @throws {HttpError} kind "frigate.http" when the status is not 2xx
- * @throws {Error} kind "frigate" when the camera or range is malformed, or the request fails
+ * @throws {Error} kind "frigate" when the camera is malformed, the range reversed or over 6 hours, or the request fails
  * @example
  *   def now as float init convert.toFloat(time.unix(time.now()));
  *   def hour as list of frigate.Recording init frigate.recordings($c, "front", $now - 3600.0, $now);
@@ -128,6 +135,12 @@ func checkSpan(start as float, end as float) {
 export func recordings(c as Client, camera as string, after as float, before as float) {
     checkName($camera, "a camera");
     checkSpan($after, $before);
+    if ($before - $after > convert.toFloat(MAX_RECORDINGS_SPAN_SECONDS)) {
+        fail(io.sprintf(
+            "recordings cover at most %d seconds per call, got %s: ask in parts",
+            MAX_RECORDINGS_SPAN_SECONDS,
+            stamp($before - $after)));
+    }
     def what as string init "recordings of " + shown($camera);
     def v as json.Value init request(
         $c,
@@ -357,15 +370,22 @@ export func startExport(
 }
 
 /**
- * Every export of the cameras the user may see, newest first.
+ * The exports of the cameras the user may see, newest first, filtered by
+ * the server.
  *
  * @param c {Client} the client
+ * @param query {list of string} parameters as `name=value`, `[]` for all: `cameras=front,back`, `start_date=<unix>` and `end_date=<unix>` (by the export's start), `export_case_id=...`
  * @return {list of Export} the exports
- * @throws {HttpError} kind "frigate.http" when the status is not 2xx
- * @throws {Error} kind "frigate" when the request fails
+ * @throws {HttpError} kind "frigate.http" when the server refuses a parameter (422, with `fields`) or the status is not 2xx
+ * @throws {Error} kind "frigate" when a parameter is malformed or the request fails
+ * @example
+ *   def since as int init time.unix(time.now()) - 86400;
+ *   for (def e in frigate.exports($c, ["cameras=front", "start_date=" + convert.toString($since)])) {
+ *       io.printf("%s %s\n", $e.id, $e.name);
+ *   }
  */
-export func exports(c as Client) {
-    def v as json.Value init request($c, "GET", "/exports", "", "exports");
+export func exports(c as Client, query as list of string) {
+    def v as json.Value init request($c, "GET", "/exports" + queryOf($query), "", "exports");
     def out as list of Export init [];
     for (def i in 0..listLength($v, "exports")) {
         $out[] = exportFrom(json.get($v, "/" + convert.toString($i)));
@@ -444,7 +464,7 @@ export func exportFile(c as Client, e as Export) {
 
 /**
  * Delete exports with their files. Needs the admin role. Either all are
- * deleted or none; `exports` may list them for a moment longer.
+ * deleted or none.
  *
  * @param c {Client} the client
  * @param ids {list of string} the exports' ids, 1 to 1000
