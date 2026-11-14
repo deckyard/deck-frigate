@@ -1,0 +1,33 @@
+# Grimoire book configuration for the @deckyard/frigate documentation.
+
+[book]
+title = "@deckyard/frigate"
+description = "Frigate NVR REST API: events, review items, recordings, clips and snapshots, exports, camera switches, config and stats"
+language = "en"
+src = "docs"
+
+[build]
+out = "site"
+clean = true
+jobs = 0
+
+[html]
+theme = "ivy"
+mode = "auto"
+navPosition = "left"
+tocPosition = "right"
+tocDepth = 3
+sectionNumbers = true
+titleUrl = "https://deckyard.github.io/deck-frigate/"
+repoUrl = "https://github.com/deckyard/deck-frigate"
+repoLabel = "Source"
+editUrl = "https://github.com/deckyard/deck-frigate/edit/main/docs/{path}"
+
+[highlight]
+enabled = true
+
+[search]
+enabled = true
+
+[pdf]
+enabled = false

@@ -1,0 +1,18 @@
+[package]
+name = "@deckyard/frigate"
+version = "0.1.0"
+description = "Frigate NVR REST API: events, review items, recordings, clips and snapshots, exports, camera switches, config and stats"
+license = "LGPL-3.0-only"
+authors = ["mplx <mplx@jennifer-lang.dev>"]
+# The client talks HTTP(S) to a Frigate server, so the deck needs `net`. No
+# `exec`, no `sql`.
+capabilities = ["net"]
+keywords = ["frigate", "nvr", "cctv", "camera", "object-detection", "self-hosted", "rest"]
+
+[package.urls]
+deck = "https://raw.githubusercontent.com/deckyard/deck-frigate/main/deck.toml"
+homepage = "https://github.com/deckyard/deck-frigate"
+manual = "https://deckyard.github.io/deck-frigate/"
+
+[engines]
+jennifer = ">=0.26.0"
