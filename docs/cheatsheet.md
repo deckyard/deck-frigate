@@ -13,8 +13,9 @@ import "@deckyard/frigate/" as frigate;
 A request the server refused throws `HttpError` (kind `frigate.http`) with
 the HTTP `status` and, for a 422, the validation errors as `fields`
 (`query.limit` -> message); a response over a cap is kind `"limit"`, a
-deadline that passed kind `"timeout"`; every other failure is
-`Error{kind: "frigate"}` (a cancelled task stays kind `"cancelled"`). A `c`
+deadline that passed kind `"timeout"`, a connection the server closed
+mid-answer kind `"closed"`; every other failure is `Error{kind: "frigate"}`
+(a cancelled task stays kind `"cancelled"`). A `c`
 argument is a `Client`; a `query` is a `list of string` of `name=value`
 parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 "Admin" calls need the admin role.
@@ -34,7 +35,7 @@ parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 
 | Function | Returns | Does |
 |---|---|---|
-| `client(baseUrl)` | `Client` | a client for the server's root URL, not signed in; plain http only to this machine |
+| `client(baseUrl)` | `Client` | a client for the server's root URL, not signed in; requests refuse plain http to another machine |
 | `login(c, username, password)` | `Client` | sign in; the client carries the JWT (`Client.token`) |
 | `withToken(c, token)` | `Client` | sign in with a JWT kept from an earlier `login` |
 | `withPlainHttp(c)` | `Client` | allow plain http to another machine (port 5000 on the LAN) |
@@ -76,7 +77,7 @@ after a moment.
 | `recordingHours(c, camera)` | `list of RecordingHour` | the hours recorded, in UTC, newest day first |
 | `storage(c)` | `list of Storage` | admin; the disk space each camera's recordings take |
 | `recordingClip(c, camera, start, end)` | `bytes` | an MP4 cut from the recordings |
-| `recordingFrame(c, camera, at, format, height)` | `bytes` | one recorded frame; height 0 for the recorded size |
+| `recordingFrame(c, camera, at, format, height)` | `bytes` | one recorded frame, `jpg` or `png`; height 0 for the recorded size |
 | `startExport(c, camera, start, end, name)` | `string` | queue an export; its id |
 | `exports(c)` | `list of Export` | every export, newest first |
 | `exportInfo(c, id)` | `Export` | one export |

@@ -17,8 +17,9 @@
  * images and video); plain `http` is refused except to this machine unless
  * allowed. A request the server refused throws `HttpError` (kind
  * `frigate.http`) with its `status` and validation `fields`; a response
- * over a cap is kind `"limit"`, a deadline that passed kind `"timeout"`;
- * every other failure is `Error{kind: "frigate"}`.
+ * over a cap is kind `"limit"`, a deadline that passed kind `"timeout"`, a
+ * connection the server closed mid-answer kind `"closed"`; every other
+ * failure is `Error{kind: "frigate"}`.
  *
  * | topic | covers |
  * | --- | --- |

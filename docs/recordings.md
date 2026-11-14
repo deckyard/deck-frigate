@@ -7,7 +7,10 @@
 
 Frigate records each camera in segments of about 10 seconds. `recordings`
 lists those in a range of at most a day, oldest first, with their motion
-and object counts:
+and object counts. Each segment with motion carries a motion heatmap of up
+to 256 cells, about 2.8 KB of JSON: a day of steady motion is some 24 MB,
+over the default JSON cap (`withMaxBytes`, 16 MiB), so ask for shorter
+ranges or raise the cap.
 
 ```jennifer
 def now as float init convert.toFloat(time.unix(time.now()));
@@ -31,7 +34,8 @@ fs.writeBytes("front.jpg", frigate.recordingFrame($c, "front", $t, "jpg", 0));
 
 A clip is cut while you wait and read into memory whole, under the media
 cap (`withMaxMediaBytes`, 256 MiB by default). A range with nothing
-recorded is `HttpError` status 400 for a clip, 404 for a frame.
+recorded is `HttpError` status 400 for a clip, 404 for a frame. A frame is
+`jpg` or `png`: Frigate renders no other format there.
 
 ## Exports
 

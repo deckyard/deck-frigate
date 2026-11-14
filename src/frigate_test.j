@@ -11,6 +11,7 @@
  * topic overlays are fragments spliced in here, not standalone suites.
  */
 use httpd;
+use net;
 use testing;
 
 include "topics/core_test.j";

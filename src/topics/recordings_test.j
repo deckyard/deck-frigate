@@ -115,6 +115,14 @@ func testClipsAndFrames() {
     } catch (e) {
         testing.assertContains($e.message, "the height must be 0 to 4320");
     }
+    # Frigate 0.18.2 answers snapshot.webp of a recording with a JPEG
+    try {
+        recordingFrame($c, "front", 1794646950.0, "webp", 0);
+        missed("a webp frame");
+    } catch (e) {
+        testing.assertEqual($e.kind, "frigate");
+        testing.assertContains($e.message, "a recorded frame's format is jpg or png");
+    }
     stopFake($f);
 }
 

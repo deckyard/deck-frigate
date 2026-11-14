@@ -53,4 +53,6 @@ frigate.call($c, "PUT", "/camera/front/set/motion_threshold", [], json.map({"val
 ```
 
 `restart` (admin) restarts Frigate; it answers first and is back after some
-seconds.
+seconds. In Docker the process exits, so it comes back only when the
+container has a restart policy (`restart: unless-stopped`, as Frigate's
+install guide sets).

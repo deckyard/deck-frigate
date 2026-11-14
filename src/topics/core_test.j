@@ -165,16 +165,18 @@ func testClientUrlsAndSettings() {
     } catch (e) {
         testing.assertContains($e.message, "the server's root, without /api");
     }
+    # plain http to the LAN is refused when a request is sent, so that
+    # `withPlainHttp(client(...))` can allow it
+    def lan as Client init client("http://nvr.lan:5000");
     try {
-        client("http://nvr.lan:5000");
+        version($lan);
         missed("plain http to the LAN");
     } catch (e) {
+        testing.assertEqual($e.kind, "frigate");
         testing.assertContains($e.message, "in clear: use https, or withPlainHttp");
     }
     testing.assertEqual(client("http://localhost:5000").baseUrl, "http://localhost:5000");
-    def lan as Client init client("https://nvr.lan:5000");
-    $lan.baseUrl = "http://nvr.lan:5000";
-    checkUrl(withPlainHttp($lan));
+    checkUrl(withPlainHttp(client("http://nvr.lan:5000")));
     testing.assertEqual(withTimeout($c, 5000).timeoutMs, 5000);
     testing.assertEqual(withMaxBytes($c, 65536).maxBytes, 65536);
     testing.assertEqual(withMaxMediaBytes($c, 1048576).maxMediaBytes, 1048576);
@@ -497,4 +499,42 @@ func testCallFetchAndCaps() {
         testing.assertEqual($e.kind, "frigate");
         testing.assertContains($e.message, "version: cannot reach");
     }
+}
+
+/**
+ * Answer one request with headers promising more body than is sent, then
+ * close the connection.
+ *
+ * @param l {net.Listener} the listener
+ * @return {int} 0
+ */
+func cutShort(l as net.Listener) {
+    def conn as net.Conn init net.accept($l);
+    net.readBytes($conn, 4096);
+    net.writeBytes(
+        $conn,
+        convert.bytesFromString(
+            "utf-8",
+            "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: 1000\r\n\r\n0123456789"));
+    net.close($conn);
+    return 0;
+}
+
+func testClosedMidAnswerStaysClosed() {
+    def l as net.Listener init net.listen("127.0.0.1:0");
+    def t as task of int init spawn {
+        return cutShort($l);
+    };
+    def c as Client init withToken(client("http://" + net.address($l)), TOKEN);
+    try {
+        fetch($c, "/front/grid.jpg", []);
+        missed("a body cut short");
+    } catch (e) {
+        testing.assertEqual($e.kind, "closed");
+        testing.assertContains(
+            $e.message,
+            "frigate: GET /front/grid.jpg: the server closed the connection");
+    }
+    task.wait($t);
+    net.close($l);
 }

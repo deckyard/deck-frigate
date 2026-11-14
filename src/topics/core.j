@@ -237,12 +237,12 @@ func stamp(t as float) {
  * A client for a Frigate server, not signed in. The URL is the server's
  * root: port 8971 serves the API over https with sign-in, port 5000 over
  * plain http without (only reachable where the operator published it).
- * Plain `http` is refused except to this machine: add `withPlainHttp` for
- * a server on the LAN.
+ * Plain `http` to another machine is refused when a request is sent: add
+ * `withPlainHttp` for a server on the LAN.
  *
  * @param baseUrl {string} the server's URL, such as `https://nvr.example.org:8971` or `http://localhost:5000`
  * @return {Client} the client
- * @throws {Error} kind "frigate" when the URL is not an absolute http(s) URL without query or fragment, ends in `/api`, or is plain http to another machine
+ * @throws {Error} kind "frigate" when the URL is not an absolute http(s) URL without query or fragment, or ends in `/api`
  * @example
  *   def c as frigate.Client init frigate.client("https://nvr.example.org:8971");
  */
@@ -260,30 +260,41 @@ export func client(baseUrl as string) {
         maxBytes: DEFAULT_MAX_BYTES,
         maxMediaBytes: DEFAULT_MAX_MEDIA_BYTES
     };
-    checkUrl($c);
+    checkUrlForm($c.baseUrl);
     return $c;
 }
 
 /**
  * Refuse a base URL that is not absolute http(s), has a query or fragment,
- * ends in `/api`, or is plain http to another machine without
- * `allowPlainHttp`.
+ * or ends in `/api`.
+ *
+ * @param baseUrl {string} the URL, without a trailing slash
+ * @return {regex.Match} the URL's parts: scheme, host, port
+ */
+func checkUrlForm(baseUrl as string) {
+    def m as regex.Match init regex.find(
+        '^(https?)://(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*)(:([0-9]{1,5}))?(/[A-Za-z0-9._~-]+)*/?$',
+        $baseUrl);
+    if ($m.start < 0 or regex.matches('/\.+(/|$)', $baseUrl) or
+        ($m.groups[6] != "" and
+        (convert.toInt($m.groups[6]) < 1 or convert.toInt($m.groups[6]) > 65535))) {
+        fail("a base URL is http(s)://host[:port][/path], port 1 to 65535, the path plain segments, got " +
+            shown($baseUrl));
+    }
+    if (strings.endsWith($baseUrl, "/api")) {
+        fail("the base URL is the server's root, without /api: got " + shown($baseUrl));
+    }
+    return $m;
+}
+
+/**
+ * Refuse a base URL `checkUrlForm` refuses, or plain http to another
+ * machine without `allowPlainHttp`.
  *
  * @param c {Client} the client
  */
 func checkUrl(c as Client) {
-    def m as regex.Match init regex.find(
-        '^(https?)://(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*)(:([0-9]{1,5}))?(/[A-Za-z0-9._~-]+)*/?$',
-        $c.baseUrl);
-    if ($m.start < 0 or regex.matches('/\.+(/|$)', $c.baseUrl) or
-        ($m.groups[6] != "" and
-        (convert.toInt($m.groups[6]) < 1 or convert.toInt($m.groups[6]) > 65535))) {
-        fail("a base URL is http(s)://host[:port][/path], port 1 to 65535, the path plain segments, got " +
-            shown($c.baseUrl));
-    }
-    if (strings.endsWith($c.baseUrl, "/api")) {
-        fail("the base URL is the server's root, without /api: got " + shown($c.baseUrl));
-    }
+    def m as regex.Match init checkUrlForm($c.baseUrl);
     if ($m.groups[0] == "http" and not $c.allowPlainHttp and
         not lists.contains(LOOPBACK, strings.lower($m.groups[1]))) {
         fail("plain http to " + shown($m.groups[1]) +
@@ -474,6 +485,14 @@ func exchange(
         if ($e.kind == "limit" or
             (strings.startsWith($e.message, "http: ") and strings.contains($e.message, " exceed"))) {
             failLimit(io.sprintf("%s: the response is over %d bytes", $what, $maxBytes));
+        }
+        # the server closed the connection mid-answer: a generic kind, passed on
+        if ($e.kind == "closed") {
+            throw Error{
+                kind: "closed",
+                message: "frigate: " + $what + ": the server closed the connection: " +
+                    cleaned($e.message, 300)
+            };
         }
         fail($what + ": cannot reach " + shown($c.baseUrl) + ": " + cleaned($e.message, 300));
     }

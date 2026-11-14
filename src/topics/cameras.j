@@ -261,7 +261,8 @@ func onOff(on as bool) {
 
 /**
  * Restart Frigate. Needs the admin role. The server answers before it goes
- * down; it is back after some seconds.
+ * down; it is back after some seconds. In Docker the process exits, so it
+ * comes back only when the container has a restart policy.
  *
  * @param c {Client} the client
  * @throws {HttpError} kind "frigate.http" when the user is no admin (403) or the status is not 2xx

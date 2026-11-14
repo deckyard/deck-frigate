@@ -60,7 +60,10 @@ these need the admin role.
 
 Frigate applies every change to an event through its event queue, after it
 has answered: a new event is not found (404) for a moment, and an `event`
-read right after a change may still show the old state.
+read right after a change may still show the old state. On port 8971 the
+proxy in front of the API also keeps every JSON answer for 5 seconds (per
+URL and user), so any read, `reviews` after `markReviewed` or `cameraStats`
+after `switchCamera` too, can lag a change by that much.
 
 ## Review items
 

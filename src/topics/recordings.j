@@ -252,7 +252,7 @@ export func recordingClip(c as Client, camera as string, start as float, end as 
  * @param c {Client} the client
  * @param camera {string} the camera
  * @param at {float} the moment, Unix seconds
- * @param format {string} `jpg`, `png` or `webp`
+ * @param format {string} `jpg` or `png` (Frigate renders no other here: it answers `webp` with a JPEG)
  * @param height {int} the height in pixels, 0 for the recorded size
  * @return {bytes} the image
  * @throws {HttpError} kind "frigate.http" when nothing was recorded then (404) or the status is not 2xx
@@ -266,7 +266,9 @@ export func recordingFrame(
     height as int) {
     checkName($camera, "a camera");
     checkTime($at, "the moment");
-    checkFormat($format);
+    if (not lists.contains(["jpg", "png"], $format)) {
+        fail("a recorded frame's format is jpg or png, got " + shown($format));
+    }
     checkRange($height, 0, 4320, "the height");
     def query as list of string init [];
     if ($height > 0) {

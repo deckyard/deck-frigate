@@ -1,6 +1,6 @@
 [package]
 name = "@deckyard/frigate"
-version = "0.1.0"
+version = "0.2.0"
 description = "Frigate NVR REST API: events, review items, recordings, clips and snapshots, exports, camera switches, config and stats"
 license = "LGPL-3.0-only"
 authors = ["mplx <mplx@jennifer-lang.dev>"]
