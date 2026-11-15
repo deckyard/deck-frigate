@@ -35,10 +35,13 @@ import "@deckyard/frigate/" as frigate;
 
 A request the server refused throws `frigate.HttpError`, kind
 `frigate.http`, with the HTTP `status` and, for a 422, the validation
-errors as `fields`; a response over a cap is kind `"limit"`, a deadline
+errors as `fields`; a response over a cap (or nested past the JSON decoder's
+caps) is kind `"limit"`, a deadline
 that passed kind `"timeout"`, a connection the server closed mid-answer
-kind `"closed"`; any other failure is `Error{kind: "frigate"}` (a
-cancelled task stays kind `"cancelled"`):
+kind `"closed"`, a server that cannot be reached, resets the connection or
+fails the TLS handshake kind `"net"` (the `net.NetError` that `http` threw,
+with `op`, `reason`, `sent` and `replied` to read); any other failure is
+`Error{kind: "frigate"}` (a cancelled task stays kind `"cancelled"`):
 
 ```jennifer
 try {

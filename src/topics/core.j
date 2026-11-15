@@ -515,6 +515,10 @@ func exchange(
                     cleaned($e.message, 300)
             };
         }
+        # a network failure is a net.NetError: passed on with its fields
+        if ($e.kind == "net") {
+            throw $e;
+        }
         fail($what + ": cannot reach " + shown($c.baseUrl) + ": " + cleaned($e.message, 300));
     }
 }
@@ -606,6 +610,10 @@ func jsonBody(r as http.BytesResponse, what as string) {
     try {
         return json.decode($text);
     } catch (e) {
+        # the decoder's nesting and node caps are a reached cap, kind "limit"
+        if ($e.kind == "limit") {
+            failLimit($what + ": " + cleaned($e.message, 300));
+        }
         fail($what + ": the response is not JSON: " + shown($text));
     }
 }

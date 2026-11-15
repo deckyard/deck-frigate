@@ -522,13 +522,71 @@ func testCallFetchAndCaps() {
         $seen[0],
         "GET /api/timeline?camera=front&limit=2|Authorization=Bearer " + TOKEN +
             "|X-Cache-Bypass=1|");
+    # nothing listening: net's NetError, passed on with its fields
+    def server as net.Listener init net.listen("127.0.0.1:0");
+    def address as string init net.address($server);
+    net.close($server);
     try {
-        version(client("http://127.0.0.1:1"));
+        version(client("http://" + $address));
         missed("nothing listening");
     } catch (e) {
-        testing.assertEqual($e.kind, "frigate");
-        testing.assertContains($e.message, "version: cannot reach");
+        testing.assertEqual($e.kind, "net");
+        def ne as net.NetError init $e;
+        testing.assertEqual($ne.reason, "refused");
+        testing.assertEqual($ne.op, "connect");
+        testing.assertFalse($ne.sent);
     }
+}
+
+/**
+ * Answer one request by resetting the connection.
+ *
+ * @param l {net.Listener} the listener
+ * @return {int} 0
+ */
+func resetOne(l as net.Listener) {
+    def conn as net.Conn init net.accept($l);
+    net.readBytes($conn, 4096);
+    net.abort($conn);
+    net.close($l);
+    return 0;
+}
+
+# A reply nested past the JSON decoder's caps is a reached cap, "limit".
+func testDecoderCapsAreLimits() {
+    def deep as string init strings.repeat("[", 5000) + strings.repeat("]", 5000);
+    def f as Fake init startFake({"GET /api/stats": answer(200, $deep)});
+    def kind as string init "";
+    def message as string init "";
+    try {
+        stats(fakeClient($f));
+    } catch (e) {
+        $kind = $e.kind;
+        $message = $e.message;
+    }
+    stopFake($f);
+    testing.assertEqual($kind, "limit");
+    testing.assertTrue(strings.startsWith($message, "frigate: "));
+}
+
+# A server that resets the connection: the NetError reaches the caller as
+# net threw it, with what http knew about the exchange.
+func testNetErrorsPassOn() {
+    def l as net.Listener init net.listen("127.0.0.1:0");
+    def address as string init net.address($l);
+    def t as task of int init spawn {
+        return resetOne($l);
+    };
+    try {
+        version(client("http://" + $address));
+        missed("a reset");
+    } catch (e) {
+        testing.assertEqual($e.kind, "net");
+        def ne as net.NetError init $e;
+        testing.assertEqual($ne.reason, "reset");
+        testing.assertFalse($ne.replied);
+    }
+    task.wait($t);
 }
 
 /**

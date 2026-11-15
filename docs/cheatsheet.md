@@ -12,9 +12,12 @@ import "@deckyard/frigate/" as frigate;
 
 A request the server refused throws `HttpError` (kind `frigate.http`) with
 the HTTP `status` and, for a 422, the validation errors as `fields`
-(`query.limit` -> message); a response over a cap is kind `"limit"`, a
+(`query.limit` -> message); a response over a cap (or nested past the JSON
+decoder's caps) is kind `"limit"`, a
 deadline that passed kind `"timeout"`, a connection the server closed
-mid-answer kind `"closed"`; every other failure is `Error{kind: "frigate"}`
+mid-answer kind `"closed"`, a network failure (refused, reset, unreachable,
+DNS, TLS) kind `"net"`, the `net.NetError` that `http` threw; every other
+failure is `Error{kind: "frigate"}`
 (a cancelled task stays kind `"cancelled"`). A `c`
 argument is a `Client`; a `query` is a `list of string` of `name=value`
 parameters with Frigate's snake_case names. Times are `float` Unix seconds.
