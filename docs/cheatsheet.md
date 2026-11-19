@@ -27,7 +27,6 @@ parameters with Frigate's snake_case names. Times are `float` Unix seconds.
 
 | Constant | Value | Meaning |
 |---|---|---|
-| `VERSION` | `"0.1.0"` | this deck's version |
 | `DEFAULT_TIMEOUT_MS` | `30000` | how long one request may take |
 | `DEFAULT_MAX_BYTES` | `16777216` | the largest JSON response read |
 | `DEFAULT_MAX_MEDIA_BYTES` | `268435456` | the largest image or video read |

@@ -59,7 +59,6 @@ use time;
 import "http.j" as http;
 import "uri.j" as uri;
 
-include "topics/version.j";
 include "topics/core.j";
 include "topics/events.j";
 include "topics/recordings.j";
