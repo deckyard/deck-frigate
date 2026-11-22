@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.26.0
+# pragma-jennifer-version: >=0.27.0
 
 # frigate - core: the client and its settings, signing in, the HTTP exchange
 # with its deadline and caps, errors, JSON readers, the server version and
@@ -489,9 +489,7 @@ func exchange(
     try {
         return task.waitTimeout($t, $timeoutMs);
     } catch (e) {
-        # A cancel is kind "cancelled" (jennifer after 0.25); the message
-        # match is for older interpreters and goes with the next floor raise.
-        if ($e.kind == "cancelled" or $e.message == "task cancelled") {
+        if ($e.kind == "cancelled") {
             task.cancel($t);
             task.discard($t);
             throw $e;
@@ -501,10 +499,7 @@ func exchange(
             task.discard($t);
             failTimeout(io.sprintf("%s: no answer within %d ms", $what, $timeoutMs));
         }
-        # A cap is kind "limit" (jennifer after 0.25: http, net); the message
-        # match is for older interpreters and goes with the next floor raise.
-        if ($e.kind == "limit" or
-            (strings.startsWith($e.message, "http: ") and strings.contains($e.message, " exceed"))) {
+        if ($e.kind == "limit") {
             failLimit(io.sprintf("%s: the response is over %d bytes", $what, $maxBytes));
         }
         # the server closed the connection mid-answer: a generic kind, passed on
@@ -600,7 +595,7 @@ func media(c as Client, path as string, what as string) {
 func jsonBody(r as http.BytesResponse, what as string) {
     def text as string init "";
     try {
-        $text = convert.stringFromBytes("utf-8", $r.body);
+        $text = encoding.decode("utf-8", $r.body);
     } catch (e) {
         fail($what + ": the response is not UTF-8");
     }
@@ -637,7 +632,7 @@ func checkStatus(r as http.BytesResponse, what as string) {
     def detail as string init "";
     def fields as map of string to string init {};
     try {
-        def text as string init strings.trim(convert.stringFromBytes("utf-8", $r.body));
+        def text as string init strings.trim(encoding.decode("utf-8", $r.body));
         if ($text != "" and not strings.startsWith($text, "<")) {
             $detail = $text;
             def v as json.Value init json.decode($text);
@@ -920,7 +915,7 @@ export func version(c as Client) {
     checkStatus($r, "version");
     def text as string init "";
     try {
-        $text = strings.trim(convert.stringFromBytes("utf-8", $r.body));
+        $text = strings.trim(encoding.decode("utf-8", $r.body));
     } catch (e) {
         fail("version: the response is not UTF-8");
     }

@@ -120,8 +120,7 @@ Out of scope:
 
 ## Dependencies on the interpreter
 
-Floor `>=0.26.0`, capability `net`; it uses the bundled `http` and `uri`
-modules. From `jennifer`'s milestones: M28.57 (the error conventions) and
-M28.65 (transport failures as `net.NetError`, passed on). The
-cancel and limit checks keep a message match as a fallback for interpreters
-older than those kinds, to go at the next floor raise.
+Floor `>=0.27.0`, capability `net`, for the UTF-8 codec of `encoding.decode`
+and `strings.replicate`; it uses the bundled `http` and `uri` modules. From
+`jennifer`'s milestones: M28.57 (the error conventions) and M28.65 (transport
+failures as `net.NetError`, passed on).

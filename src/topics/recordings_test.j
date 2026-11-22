@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.26.0
+# pragma-jennifer-version: >=0.27.0
 
 # frigate - white-box tests for the recordings topic. Spliced into
 # frigate_test.j via include.
@@ -85,7 +85,7 @@ func testRecordingsSpanIsSixHours() {
         testing.assertContains($e.message, "recordings cover at most 21600 seconds per call");
     }
     testing.assertEqual(
-        convert.stringFromBytes("utf-8", recordingClip($c, "front", 1794600000.0, 1794686400.0)),
+        encoding.decode("utf-8", recordingClip($c, "front", 1794600000.0, 1794686400.0)),
         "MP4");
     def seen as list of string init stopFake($f);
     testing.assertEqual(len($seen), 2);
@@ -118,13 +118,13 @@ func testClipsAndFrames() {
     });
     def c as Client init fakeClient($f);
     testing.assertEqual(
-        convert.stringFromBytes("utf-8", recordingClip($c, "front", 1794646944.0, 1794646964.25)),
+        encoding.decode("utf-8", recordingClip($c, "front", 1794646944.0, 1794646964.25)),
         "MP4");
     testing.assertEqual(
-        convert.stringFromBytes("utf-8", recordingFrame($c, "front", 1794646950.0, "png", 120)),
+        encoding.decode("utf-8", recordingFrame($c, "front", 1794646950.0, "png", 120)),
         "PNG");
     testing.assertEqual(
-        convert.stringFromBytes("utf-8", recordingFrame($c, "front", 1794646950.0, "jpg", 0)),
+        encoding.decode("utf-8", recordingFrame($c, "front", 1794646950.0, "jpg", 0)),
         "JPG");
     try {
         recordingClip($c, "front", 1000.0, 1010.0);
@@ -189,7 +189,7 @@ func testExports() {
         testing.assertEqual($e.status, 400);
     }
     try {
-        startExport($c, "front", 1.0, 2.0, strings.repeat("n", 257));
+        startExport($c, "front", 1.0, 2.0, strings.replicate("n", 257));
         missed("a long name");
     } catch (e) {
         testing.assertContains($e.message, "an export name is at most 256 characters");
@@ -221,7 +221,7 @@ func testExports() {
     testing.assertEqual($e.name, "probe");
     testing.assertEqual($e.date, 1794646939.0);
     testing.assertFalse($e.inProgress);
-    testing.assertEqual(convert.stringFromBytes("utf-8", exportFile($c, $e)), "EXPORTED");
+    testing.assertEqual(encoding.decode("utf-8", exportFile($c, $e)), "EXPORTED");
     def started as time.Time init time.now();
     try {
         waitExport($c, "busy", 1500);

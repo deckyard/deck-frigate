@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.26.0
+# pragma-jennifer-version: >=0.27.0
 
 # frigate - white-box tests for the cameras topic. Spliced into
 # frigate_test.j via include.
@@ -48,12 +48,8 @@ func testLatestFrame() {
         "GET /api/front/latest.webp?height=240": "200\nContent-Type: image/webp\n\nWEBP"
     });
     def c as Client init fakeClient($f);
-    testing.assertEqual(
-        convert.stringFromBytes("utf-8", latestFrame($c, "front", "jpg", 0)),
-        "JPG");
-    testing.assertEqual(
-        convert.stringFromBytes("utf-8", latestFrame($c, "front", "webp", 240)),
-        "WEBP");
+    testing.assertEqual(encoding.decode("utf-8", latestFrame($c, "front", "jpg", 0)), "JPG");
+    testing.assertEqual(encoding.decode("utf-8", latestFrame($c, "front", "webp", 240)), "WEBP");
     try {
         latestFrame($c, "*", "jpg", 0);
         missed("all cameras");

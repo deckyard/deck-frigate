@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.26.0
+# pragma-jennifer-version: >=0.27.0
 
 # frigate - white-box tests for the core topic, and the fake server the
 # other overlays use. Spliced into frigate_test.j via include.
@@ -81,7 +81,7 @@ func serveFake(srv as httpd.Server, answers as map of string to string) {
                 $line[] = $h + "=" + httpd.header($req, $h);
             }
         }
-        $line[] = convert.stringFromBytes("utf-8", httpd.body($req));
+        $line[] = encoding.decode("utf-8", httpd.body($req));
         $seen[] = strings.join($line, "|");
         def spec as string init "404\nContent-Type: application/json\n\n" +
             '{"success":false,"message":"no answer for ' + $key + '"}';
@@ -226,7 +226,7 @@ func testStampsNamesAndQueries() {
         }
     }
     checkName("front_door-2", "a camera");
-    for (def bad in ["", "front door", "a/b", "../x", strings.repeat("x", 65)]) {
+    for (def bad in ["", "front door", "a/b", "../x", strings.replicate("x", 65)]) {
         try {
             checkName($bad, "a camera");
             missed($bad);
@@ -444,11 +444,30 @@ func testCommandsThatDidNotSucceed() {
     stopFake($f);
 }
 
+# A caller that cancels the task running a request gets the cancel back as
+# it is (kind "cancelled"), not as a timeout or a failure to reach Frigate.
+func testCallPassesACancelOn() {
+    def f as Fake init startFake({"GET /api/slow": "SLEEP\n\n"});
+    def c as Client init withTimeout(fakeClient($f), 30000);
+    def t as task of json.Value init spawn {
+        return call($c, "GET", "/slow", [], json.decode("null"));
+    };
+    time.sleep(time.fromMilliseconds(200));
+    task.cancel($t);
+    try {
+        task.wait($t);
+        missed("a cancelled call");
+    } catch (e) {
+        testing.assertEqual($e.kind, "cancelled");
+    }
+    stopFake($f);
+}
+
 func testCallFetchAndCaps() {
     def f as Fake init startFake({
         "GET /api/timeline?camera=front&limit=2": answer(200, '[{"a":1}]'),
         "GET /api/slow": "SLEEP\n\n",
-        "GET /api/big": answer(200, '{"x":"' + strings.repeat("y", 70000) + '"}'),
+        "GET /api/big": answer(200, '{"x":"' + strings.replicate("y", 70000) + '"}'),
         "GET /api/html": "200\nContent-Type: text/html\n\n<html>",
         "GET /api/front/grid.jpg": "200\nContent-Type: image/jpeg\n\nJPEGDATA",
         "GET /api/json.jpg": answer(200, '{"success":false}'),
@@ -458,9 +477,7 @@ func testCallFetchAndCaps() {
     testing.assertEqual(
         json.length(call($c, "GET", "/timeline", ["camera=front", "limit=2"], json.decode("null"))),
         1);
-    testing.assertEqual(
-        convert.stringFromBytes("utf-8", fetch($c, "/front/grid.jpg", [])),
-        "JPEGDATA");
+    testing.assertEqual(encoding.decode("utf-8", fetch($c, "/front/grid.jpg", [])), "JPEGDATA");
     testing.assertEqual(version($c), "0.18.2-cfa08c5");
     try {
         call(withMaxBytes($c, 65536), "GET", "/big", [], json.decode("null"));
@@ -554,7 +571,7 @@ func resetOne(l as net.Listener) {
 
 # A reply nested past the JSON decoder's caps is a reached cap, "limit".
 func testDecoderCapsAreLimits() {
-    def deep as string init strings.repeat("[", 5000) + strings.repeat("]", 5000);
+    def deep as string init strings.replicate("[", 5000) + strings.replicate("]", 5000);
     def f as Fake init startFake({"GET /api/stats": answer(200, $deep)});
     def kind as string init "";
     def message as string init "";
@@ -601,7 +618,7 @@ func cutShort(l as net.Listener) {
     net.readBytes($conn, 4096);
     net.writeBytes(
         $conn,
-        convert.bytesFromString(
+        encoding.encode(
             "utf-8",
             "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: 1000\r\n\r\n0123456789"));
     net.close($conn);

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.26.0
+# pragma-jennifer-version: >=0.27.0
 
 # frigate - white-box tests for the events topic. Spliced into
 # frigate_test.j via include.
@@ -143,7 +143,7 @@ func testEventChanges() {
         "caf\u00e9",
         "a%20b",
         "a+b",
-        strings.repeat("x", 65)
+        strings.replicate("x", 65)
     ]) {
         try {
             createEvent($c, "front", $bad, "", 1);
@@ -164,7 +164,7 @@ func testEventChanges() {
         }
     }
     try {
-        setSubLabel($c, EVENT, strings.repeat("x", 101), 0.0);
+        setSubLabel($c, EVENT, strings.replicate("x", 101), 0.0);
         missed("a long sub label");
     } catch (e) {
         testing.assertContains($e.message, "a sub label is at most 100 characters");
@@ -212,11 +212,9 @@ func testEventMedia() {
             '{"success":false,"message":"Live frame not available"}')
     });
     def c as Client init fakeClient($f);
-    testing.assertEqual(convert.stringFromBytes("utf-8", eventSnapshot($c, EVENT)), "SNAP");
-    testing.assertEqual(
-        convert.stringFromBytes("utf-8", eventThumbnail($c, EVENT, "webp")),
-        "THUMB");
-    testing.assertEqual(convert.stringFromBytes("utf-8", eventClip($c, EVENT, 5)), "CLIP");
+    testing.assertEqual(encoding.decode("utf-8", eventSnapshot($c, EVENT)), "SNAP");
+    testing.assertEqual(encoding.decode("utf-8", eventThumbnail($c, EVENT, "webp")), "THUMB");
+    testing.assertEqual(encoding.decode("utf-8", eventClip($c, EVENT, 5)), "CLIP");
     try {
         eventClip($c, EVENT, 0);
         missed("a 404");
