@@ -39,8 +39,8 @@ func missed(what as string) {
  * Start a fake Frigate server. An answer is looked up by `METHOD path?query`,
  * then `METHOD path`; it is the status, a newline, header lines `Name: value`,
  * an empty line and the body. A request with no answer gets 404 and
- * `{"success": false, "message": ...}`; an answer whose status is `SLEEP`
- * waits 3 seconds.
+ * `{"success": false, "message": ...}`; an answer whose status is
+ * `SLEEP <ms>` waits that many milliseconds, then answers 200 `{}`.
  *
  * @param answers {map of string to string} the answers
  * @return {Fake} the server
@@ -96,8 +96,8 @@ func serveFake(srv as httpd.Server, answers as map of string to string) {
             def at as int init strings.indexOf($h, ": ");
             httpd.setHeader($req, $h[..$at], $h[$at + 2..]);
         }
-        if ($head[0] == "SLEEP") {
-            time.sleep(time.fromMilliseconds(3000));
+        if (strings.startsWith($head[0], "SLEEP ")) {
+            time.sleep(time.fromMilliseconds(convert.toInt($head[0][len("SLEEP ")..])));
             httpd.respond($req, 200, '{}');
         } else {
             httpd.respond($req, convert.toInt($head[0]), $spec[$split + 2..]);
@@ -446,13 +446,14 @@ func testCommandsThatDidNotSucceed() {
 
 # A caller that cancels the task running a request gets the cancel back as
 # it is (kind "cancelled"), not as a timeout or a failure to reach Frigate.
+# The cancel comes while the 250 ms answer is still pending.
 func testCallPassesACancelOn() {
-    def f as Fake init startFake({"GET /api/slow": "SLEEP\n\n"});
+    def f as Fake init startFake({"GET /api/slow": "SLEEP 250\n\n"});
     def c as Client init withTimeout(fakeClient($f), 30000);
     def t as task of json.Value init spawn {
         return call($c, "GET", "/slow", [], json.decode("null"));
     };
-    time.sleep(time.fromMilliseconds(200));
+    time.sleep(time.fromMilliseconds(50));
     task.cancel($t);
     try {
         task.wait($t);
@@ -466,7 +467,7 @@ func testCallPassesACancelOn() {
 func testCallFetchAndCaps() {
     def f as Fake init startFake({
         "GET /api/timeline?camera=front&limit=2": answer(200, '[{"a":1}]'),
-        "GET /api/slow": "SLEEP\n\n",
+        "GET /api/slow": "SLEEP 1300\n\n",
         "GET /api/big": answer(200, '{"x":"' + strings.replicate("y", 70000) + '"}'),
         "GET /api/html": "200\nContent-Type: text/html\n\n<html>",
         "GET /api/front/grid.jpg": "200\nContent-Type: image/jpeg\n\nJPEGDATA",
