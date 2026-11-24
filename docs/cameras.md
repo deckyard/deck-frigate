@@ -44,7 +44,7 @@ The features are `enabled`, `detect`, `motion`, `recordings`,
 `review_alerts`, `review_detections`, `object_descriptions`,
 `review_descriptions`, `improve_contrast`, `ptz_autotracker` and
 `birdseye`. `switchPart` turns a named zone, motion mask or object mask on
-or off; Frigate 0.18 accepts a name that is not in the configuration and
+or off; Frigate™ 0.18 accepts a name that is not in the configuration and
 does nothing. The settings that take a value (`birdseye_mode`,
 `motion_threshold`, `motion_contour_area`, `profile`) go through `call`:
 
@@ -53,6 +53,6 @@ frigate.call($c, "PUT", "/camera/front/set/motion_threshold", [], json.map({"val
 ```
 
 `restart` (admin) restarts Frigate; it answers first and is back after some
-seconds. In Docker the process exits, so it comes back only when the
+seconds. In Docker™ the process exits, so it comes back only when the
 container has a restart policy (`restart: unless-stopped`, as Frigate's
 install guide sets).

@@ -20,7 +20,7 @@ DNS, TLS) kind `"net"`, the `net.NetError` that `http` threw; every other
 failure is `Error{kind: "frigate"}`
 (a cancelled task stays kind `"cancelled"`). A `c`
 argument is a `Client`; a `query` is a `list of string` of `name=value`
-parameters with Frigate's snake_case names. Times are `float` Unix seconds.
+parameters with Frigate™'s snake_case names. Times are `float` Unix seconds.
 "Admin" calls need the admin role.
 
 ## Constants

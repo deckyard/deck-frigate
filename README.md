@@ -4,7 +4,7 @@
 [![Documentation](https://img.shields.io/badge/docs-github%20pages-blue)](https://deckyard.github.io/deck-frigate/)
 [![release](https://img.shields.io/github/v/release/deckyard/deck-frigate)](https://github.com/deckyard/deck-frigate/releases/latest)
 
-A client for the HTTP API of [Frigate](https://frigate.video/), the
+A client for the HTTP API of [Frigate™](https://frigate.video/), the
 self-hosted network video recorder with object detection, for
 [Jennifer](https://jennifer-lang.dev/) programs: sign in, list and filter
 events and review items, fetch snapshots and clips, create events by hand,
@@ -62,6 +62,13 @@ jennifer test src/frigate_test.j      # the test overlay
 tools/check-docs.sh                  # docs against the code
 tools/pack.sh dist                   # build the release archive
 ```
+
+## Trademarks
+
+Other product and company names, such as Frigate™ and Docker™, may be
+trademarks of their respective owners. They are used only to identify the
+products this deck works with. This deck is an independent project, not
+affiliated with, sponsored or endorsed by Frigate, Inc.
 
 ## Licence
 

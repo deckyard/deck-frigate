@@ -5,7 +5,7 @@
 
 ## Recordings
 
-Frigate records each camera in segments of about 10 seconds. `recordings`
+Frigate™ records each camera in segments of about 10 seconds. `recordings`
 lists those in a range of at most 6 hours (`MAX_RECORDINGS_SPAN_SECONDS`),
 oldest first, with their motion and object counts; a longer range is
 refused before anything is sent. Each segment with motion carries a motion

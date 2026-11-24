@@ -3,7 +3,7 @@
 
 # Signing in
 
-Frigate serves its API on two ports:
+Frigate™ serves its API on two ports:
 
 | Port | Scheme | Sign-in | Use |
 |---|---|---|---|

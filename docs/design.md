@@ -5,7 +5,7 @@
 
 ## Scope
 
-A client for the HTTP API of Frigate, the network video recorder: sign-in;
+A client for the HTTP API of Frigate™, the network video recorder: sign-in;
 events with filters, snapshots, thumbnails and clips, manual events, sub
 labels and retention; review items and reviewed marks; recordings, the hourly
 summary, recording clips and frames, storage; exports (start, wait, download,
@@ -24,7 +24,7 @@ Out of scope:
 ## Decisions
 
 - **The live server is the source of truth.** The API follows Frigate's
-  OpenAPI description (checked at v0.18.2), but the description is wrong in
+  OpenAPI™ description (checked at v0.18.2), but the description is wrong in
   places: review start and end times are Unix numbers, not date-times;
   `/version` is not public on the authenticated port; a single review item
   has no reviewed flag; a recording's WebP snapshot is a JPEG. Where they
@@ -114,7 +114,7 @@ Out of scope:
 - Event changes take effect asynchronously; a read right after a write may
   show the old state.
 - A snapshot of a manual event that is still open is 404.
-- `restart` in Docker exits the container unless it has a restart policy.
+- `restart` in Docker™ exits the container unless it has a restart policy.
 - Bodies are read whole; streaming downloads wait for streaming responses in
   `http` (M30.9).
 

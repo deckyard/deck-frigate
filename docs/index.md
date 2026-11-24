@@ -3,7 +3,7 @@
 
 # @deckyard/frigate
 
-[Frigate](https://frigate.video/) is a self-hosted network video recorder
+[Frigate™](https://frigate.video/) is a self-hosted network video recorder
 that detects objects in camera streams. This deck is a client for its HTTP
 API: the tracked objects it calls events, with their snapshots and clips;
 the review items the UI lists as alerts and detections; recordings, clips
@@ -67,6 +67,13 @@ before they go into a URL. Every GET carries `X-Cache-Bypass: 1`: nginx in
 front of port 8971 otherwise answers a read repeated within 5 seconds from
 its cache, so a read right after a change would show the old state.
 
-The deck follows Frigate 0.18 (checked against 0.18.2 and its OpenAPI
+The deck follows Frigate 0.18 (checked against 0.18.2 and its OpenAPI™
 description). Calls marked admin in the [cheatsheet](cheatsheet.md) need a
 user with the admin role.
+
+## Trademarks
+
+Other product and company names, such as Frigate™ and Docker™, may be
+trademarks of their respective owners. They are used only to identify the
+products this deck works with. This deck is an independent project, not
+affiliated with, sponsored or endorsed by Frigate, Inc.

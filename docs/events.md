@@ -46,7 +46,7 @@ recording turned on for the camera.
 
 ## Manual events
 
-A program can mark a moment itself, such as a doorbell press, and Frigate
+A program can mark a moment itself, such as a doorbell press, and Frigate™
 keeps the recording around it:
 
 ```jennifer
