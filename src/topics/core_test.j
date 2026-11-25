@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.27.0
+# pragma-jennifer-version: >=0.28.0
 
 # frigate - white-box tests for the core topic, and the fake server the
 # other overlays use. Spliced into frigate_test.j via include.
@@ -467,7 +467,7 @@ func testCallPassesACancelOn() {
 func testCallFetchAndCaps() {
     def f as Fake init startFake({
         "GET /api/timeline?camera=front&limit=2": answer(200, '[{"a":1}]'),
-        "GET /api/slow": "SLEEP 1300\n\n",
+        "GET /api/slow": "SLEEP 1250\n\n",
         "GET /api/big": answer(200, '{"x":"' + strings.replicate("y", 70000) + '"}'),
         "GET /api/html": "200\nContent-Type: text/html\n\n<html>",
         "GET /api/front/grid.jpg": "200\nContent-Type: image/jpeg\n\nJPEGDATA",

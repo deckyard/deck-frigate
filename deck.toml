@@ -15,4 +15,4 @@ homepage = "https://github.com/deckyard/deck-frigate"
 manual = "https://deckyard.github.io/deck-frigate/"
 
 [engines]
-jennifer = ">=0.27.0"
+jennifer = ">=0.28.0"

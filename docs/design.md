@@ -120,7 +120,7 @@ Out of scope:
 
 ## Dependencies on the interpreter
 
-Floor `>=0.27.0`, capability `net`, for the UTF-8 codec of `encoding.decode`
+Floor `>=0.28.0` (the calls 0.29.0 removes are replaced by their 0.28.0 forms), capability `net`, for the UTF-8 codec of `encoding.decode`
 and `strings.replicate`; it uses the bundled `http` and `uri` modules. From
 `jennifer`'s milestones: M28.57 (the error conventions) and M28.65 (transport
 failures as `net.NetError`, passed on).

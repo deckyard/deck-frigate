@@ -51,7 +51,7 @@ and `export.j` take `FRIGATE_CA=ca.pem` or `FRIGATE_INSECURE=1`.
 
 ## Requirements
 
-Jennifer 0.27.0 or newer, with the `net` capability: the deck talks HTTP(S)
+Jennifer 0.28.0 or newer, with the `net` capability: the deck talks HTTP(S)
 to a Frigate server. Checked against Frigate 0.18.2.
 
 ## Development

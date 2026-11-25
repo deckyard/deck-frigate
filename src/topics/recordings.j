@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-only
 # SPDX-FileCopyrightText: Copyright (C) 2026 mplx <mplx@jennifer-lang.dev>
-# pragma-jennifer-version: >=0.27.0
+# pragma-jennifer-version: >=0.28.0
 
 # frigate - recordings: recorded segments and their hourly summary, clips
 # and frames cut from them, storage use, and exports (start, list, wait,
@@ -420,13 +420,13 @@ export func exportInfo(c as Client, id as string) {
 export func waitExport(c as Client, id as string, ms as int) {
     checkExportId($id);
     checkRange($ms, 1000, 86400000, "the wait");
-    def started as int init time.unixMillis(time.now());
+    def started as int init time.unixMilliseconds(time.now());
     while (true) {
         def e as Export init exportInfo($c, $id);
         if (not $e.inProgress) {
             return $e;
         }
-        def left as int init $started + $ms - time.unixMillis(time.now());
+        def left as int init $started + $ms - time.unixMilliseconds(time.now());
         if ($left <= 0) {
             failTimeout(io.sprintf("export %s: still being written after %d ms", $id, $ms));
         }
